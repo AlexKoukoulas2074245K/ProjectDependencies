@@ -7,8 +7,11 @@ You can try the dependencies mapping app:
 
 2) By downloading the always up-to-date jar.
 
-*** Programming Languages Supported Currently ****
+**************************************************
+
+Programming Languages Supported Currently:
 C/C++, Java
+
 **************************************************
 
 Instructions:
