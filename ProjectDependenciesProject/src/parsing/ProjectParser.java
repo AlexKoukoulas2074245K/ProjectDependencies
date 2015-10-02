@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 
+import javax.swing.JOptionPane;
+
 public final class ProjectParser 
 {
 	private Language language;
@@ -45,10 +47,18 @@ public final class ProjectParser
 			
 		language = null;
 		List<File> headers = accumulateHeaders(workingDirectory);
-		
-		if(language == null) throw new ParsingException("The Language for the source files provided is not supported");
-		
+				
 		Map<String, HeaderData> result = new HashMap<String, HeaderData>();
+		
+		if(language == null)
+		{
+			JOptionPane.showMessageDialog(
+					null,
+					"The language of your project is not supported",
+					"Error",
+					JOptionPane.WARNING_MESSAGE);
+			return result;	
+		}
 		
 		for(File f: headers) result.put(f.getName(), new HeaderData(new ArrayList<String>()));
 		

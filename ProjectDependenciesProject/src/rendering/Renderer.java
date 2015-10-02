@@ -139,6 +139,17 @@ public final class Renderer
 	}
 	
 	/**
+	 * @see {@link http://docs.oracle.com/javase/7/docs/api/java/awt/Graphics.html#fillRect(int,%20int,%20int,%20int)}
+	 */
+	public void drawDefaultRect(final int x,
+								final int y,
+								final int width,
+								final int height)
+	{
+		gfx.fillRect(x, y, width, height);
+	}
+	
+	/**
 	 * 
 	 * @param str the String to be rendered 
 	 * @param fontSize desired font size

@@ -49,6 +49,7 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 	// arguments passed to panel 
 	private Map<String, HeaderData> headerData;
 	private Map<String, Rectangle> rects;
+	private Map<String, float[]> rectPos0;
 	private Map<String, float[]> rectDeltas;
 	
 	private float rectWidth;
@@ -57,7 +58,10 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 	private int maxDeps;
 	private int zoomLevel;
 	
+	private boolean swiping;
 	private int[] rectMouseDist;
+	private int mousePressX;
+	private int mousePressY;
 	private String headerMoving;
 	private String headerHighlighted;
 	
@@ -72,6 +76,7 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 		
 		headerData = new HashMap<String, HeaderData>();
 		rectDeltas = new HashMap<String, float[]>();
+		rectPos0   = new HashMap<String, float[]>();
 		
 		zoomLevel = 40;
 		
@@ -123,16 +128,16 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 		int nRects = headerData.size();
 		int nRectsPerDimension = (int)Math.ceil(Math.sqrt(nRects));
 		
-		int x0Offset = (int)((float) 80f);
-		int y0Offset = (int)(x0Offset * wnd.getAspect());
+		int x0Offset = 80;
+		int y0Offset = (int)(50 * wnd.getAspect());
 		
 		rectWidth  = (float) (wnd.getWidth() - 2 * x0Offset) / (float)nRectsPerDimension * ((float)zoomLevel / 40f);
 		rectHeight = (float) rectWidth / (wnd.getAspect() * 2.2f);
 		
 		rects = new HashMap<String, Rectangle>();
 		
-		int xOffset  = (int)(rectWidth * 1.5f);
-		int yOffset  = (int)(rectHeight * 1.5f);
+		int xOffset  = (int)(rectWidth * 1.64f);
+		int yOffset  = (int)(rectHeight * 1.7f);
 		int x = x0Offset;
 		int y = y0Offset;
 		
@@ -169,6 +174,8 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 		
 		fontSize = ((float)rectWidth * 1.87f)/ (float)maxLen;
 		
+		swiping = false;
+		
 		renderer = new Renderer();
 		renderer.init(fontSize, wnd);
 	}
@@ -203,7 +210,7 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 				zoomLevel = 40;
 				init();
 				newProject = false;
-				System.out.println(parser.getLanguage().getLanguageName());
+				if(parser.getLanguage() == null) currentProject = null;
 			}
 			
 			updateComponents();
@@ -267,6 +274,18 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 				rectMouseDist = new int[]{rect.x - inputHandler.getMousePosition()[0],
 										  rect.y - inputHandler.getMousePosition()[1]};
 			}
+			else
+			{
+				for(Entry<String, Rectangle> entry : rects.entrySet())
+				{
+					rectPos0.put(entry.getKey(),
+								new float[]{entry.getValue().x, entry.getValue().y});
+				}
+				
+				mousePressX = inputHandler.getMousePosition()[0];
+				mousePressY = inputHandler.getMousePosition()[1];
+				swiping = true;
+			}
 		}
 		else if(inputHandler.isButtonDown(InputHandler.LEFT_MB))
 		{
@@ -281,11 +300,29 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 				rectDeltas.put(headerMoving, new float[]{(float)newRect.x / (float)wnd.getWidth(),
 													     (float)newRect.y / (float)wnd.getHeight()});
 			}
+			else if(swiping)
+			{
+				float[] deltas = new float[]{inputHandler.getMousePosition()[0] - mousePressX,
+											 inputHandler.getMousePosition()[1] - mousePressY};
+				
+				for(Entry<String, Rectangle> entry : rects.entrySet())
+				{
+					Rectangle newRect = new Rectangle((int)(rectPos0.get(entry.getKey())[0] + deltas[0]),
+													  (int)(rectPos0.get(entry.getKey())[1] + deltas[1]),
+													  (int)rectWidth,
+													  (int)rectHeight);
+					entry.setValue(newRect);
+					rectDeltas.put(entry.getKey(), new float[]{(float)newRect.x / (float)wnd.getWidth(),
+															   (float)newRect.y / (float)wnd.getHeight()});
+				}
+			}
 		}
 		else if(!inputHandler.isButtonDown(InputHandler.LEFT_MB))
 		{
 			headerMoving = null;
 			rectMouseDist = null;
+			swiping = false;
+			rectDeltas.clear();
 		}
 		
 		if(inputHandler.getMouseWheelRotation() != 0)
@@ -298,11 +335,16 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 	private void draw()
 	{
 		renderer.drawImage(backgroundImage, 0, 0, (int)wnd.getWidth(), (int)wnd.getHeight());
-		if(currentProject == null || parser.getLanguage() == null) return;
+		if(currentProject == null) 
+		{
+			drawPrompt();
+			return;
+		}
 		drawDepBoxes();
 		drawDepLines();
+		drawCutoffBox();
 		drawLanguageName();
-		drawHeaderName();
+		drawHeaderInfo();
 	}	
 	
 	private void drawDepLines()
@@ -355,8 +397,16 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 			renderer.drawVarString(entry.getKey(), xOffset, yOffset);
 		}
 	}
-
-	private void drawHeaderName()
+	
+	private void drawCutoffBox()
+	{
+		renderer.setColor(Color.BLACK);
+		renderer.drawDefaultRect(0, 0, wnd.getWidth(), (int)(50 * wnd.getAspect()));
+		renderer.drawDefaultRect(0, 0, 80, wnd.getHeight());
+		renderer.drawDefaultRect(wnd.getWidth() - 80, 0, 80, wnd.getHeight());
+	}
+	
+	private void drawHeaderInfo()
 	{
 		if(headerHighlighted != null)
 		{
@@ -365,20 +415,37 @@ public class MainPanel extends JPanel implements Runnable, WindowObserver, DropO
 			String rndstr3 = "no. headers depended on it: " + headerData.get(headerHighlighted).nHeaderIncluded;
 			
 			renderer.setColor(Color.YELLOW);
-			renderer.drawConstString(rndstr, 20, 10, 30);
-			renderer.drawConstString(rndstr2, 20, 10, 70);
-			renderer.drawConstString(rndstr3, 20, 10, 100);
+			renderer.drawConstString(rndstr, 20, 10, 20);
+			renderer.drawConstString(rndstr2, 20, 10, 50);
+			renderer.drawConstString(rndstr3, 20, 10, 80);
 		}
 	}
 	
 	private void drawLanguageName()
 	{
+		if(parser.getLanguage() == null) return;
 		String rndstr = "Project Language: " + parser.getLanguage().getLanguageName();
 		renderer.setColor(Color.BLUE);
 		renderer.drawConstString(rndstr,
 								30,
 						   		(int)(wnd.getWidth() / 2f - (30 * rndstr.length() / 2f) / 2f),
 						   		(int)(wnd.getHeight() / 30f + 30));
+	}
+	
+	private void drawPrompt()
+	{
+		String rndstr = "Please drag and drop your project folder";
+		String rndstr2 = "anywhere inside this window";
+		
+		renderer.setColor(Color.CYAN);
+		renderer.drawConstString(rndstr,
+				30,
+				(int)(wnd.getWidth() / 2f - (30 * rndstr.length() / 2f) / 2f),
+				(int)(wnd.getHeight() / 30f + 30));
+		renderer.drawConstString(rndstr2,
+				30,
+				(int)(wnd.getWidth() / 2f - (30 * rndstr2.length() / 2f) / 2f),
+				(int)(wnd.getHeight() / 30f + 70));
 	}
 	
 	private String getHeaderRectHovered()
