@@ -10,7 +10,8 @@ You can try the dependencies mapping app:
 **************************************************
 
 Programming Languages Supported Currently:
-C/C++, Java
+
+C/C++, Java, C#, Python, Objective-C and Javascript(still needs work) 
 
 **************************************************
 
