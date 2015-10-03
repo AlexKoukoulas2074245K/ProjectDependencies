@@ -2,20 +2,24 @@ package parsing;
 
 import javax.swing.JOptionPane;
 
-public final class CLanguage implements Language
+public final class OCLanguage implements Language 
 {
-	public static final String C_HEADER_FILE_EXT = ".h";
-	private static final String C_INCLUDE_STATEMENT = "#include";
-	private static final String C_NAME = "C/C++";
+	
+	public static final String OBJC_HEADER_FILE_EXTENSION = ".h";
+	public static final String OBJC_SOURCE_FILE_EXTENSION = ".m";
+	
+	private static final String OBJC_IMPORT_STATEMENT = "#import";
+	private static final String OBJC_LANGUAGE_NAME = "Objective-C";
+
+
+	@Override
+	public String getLanguageImportName() { return OBJC_IMPORT_STATEMENT; }
+
+	@Override
+	public String getLanguageName() { return OBJC_LANGUAGE_NAME; }
 	
 	@Override
-	public String getLanguageName() { return C_NAME; }
-	
-	@Override
-	public String getLanguageImportName() { return C_INCLUDE_STATEMENT; }
-	
-	@Override
-	public String[] getDependenciesFromString(final String inputString, final String fileName)
+	public String[] getDependenciesFromString(String inputString, String fileName) 
 	{
 		if(inputString.split("\\s+").length < 1)
 		{	
